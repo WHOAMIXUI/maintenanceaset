@@ -442,7 +442,7 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <h2 class="font-bold text-slate-800 text-base">Kelola Akun Pengguna</h2>
-                                <p class="text-xs text-slate-500">Daftar pengguna dengan role Manager atau Staff.</p>
+                                <p class="text-xs text-slate-500">Daftar pengguna dengan role Manager atau Staff beserta hak akses cabang.</p>
                             </div>
                             <button onclick="openModalUser()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm flex items-center gap-1.5">
                                 <i data-lucide="user-plus" class="w-4 h-4"></i> Tambah User Baru
@@ -455,7 +455,7 @@
                                         <th class="p-4">Nama Pengguna</th>
                                         <th class="p-4">Username</th>
                                         <th class="p-4">Role</th>
-                                        <th class="p-4">Cabang Default</th>
+                                        <th class="p-4">Cabang Akses</th>
                                         <th class="p-4 text-right">Aksi</th>
                                     </tr>
                                 </thead>
@@ -601,9 +601,10 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1">Cabang Default</label>
-                    <select id="user-cabang" required class="w-full px-3.5 py-2 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-500/20">
-                    </select>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">Hak Akses Cabang (Bisa Pilih Beberapa)</label>
+                    <div id="user-branches-checkboxes" class="max-h-36 overflow-y-auto p-2.5 border rounded-xl space-y-2 bg-slate-50 text-xs">
+                        <!-- Rendered Checkboxes -->
+                    </div>
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="closeModal('modal-user')" class="px-4 py-2 border rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50">Batal</button>
@@ -659,10 +660,10 @@
         }
         const db = firebase.firestore();
 
-        // Seed Data Awal untuk Master Data (Pengajuan Tiket Dikosongkan)
+        // Seed Data Awal
         const defaultUsers = [
-            { id: 'u1', name: 'Hendra Wijaya', username: 'manager', password: '123', role: 'manager', branch: 'Cilaki' },
-            { id: 'u2', name: 'Budi Santoso', username: 'staff', password: '123', role: 'staff', branch: 'Cilaki' }
+            { id: 'u1', name: 'Hendra Wijaya', username: 'manager', password: '123', role: 'manager', branches: ['Cilaki', 'Cibeunying', 'Maskumambang', 'Cipete', 'Bintaro', 'Bekasi', 'Bogor', 'Surabaya Musi', 'Surabaya Barat'] },
+            { id: 'u2', name: 'Budi Santoso', username: 'staff', password: '123', role: 'staff', branches: ['Cilaki'] }
         ];
 
         const defaultBranches = [
@@ -731,7 +732,7 @@
             }
         };
 
-        // Authentication Logic (Dengan Penyimpanan Sesi Login di localStorage)
+        // Authentication Logic
         function doLogin(user, saveSession = true) {
             currentUser = user;
             if (saveSession) {
@@ -741,7 +742,9 @@
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('user-display-name').innerText = user.name;
             document.getElementById('user-role-badge').innerText = user.role;
-            document.getElementById('user-branch-display').innerText = user.branch || 'Semua Cabang';
+            
+            const userBranches = user.branches || (user.branch ? [user.branch] : []);
+            document.getElementById('user-branch-display').innerText = userBranches.length > 0 ? userBranches.join(', ') : 'Semua Cabang';
             document.getElementById('user-avatar').innerText = user.name.charAt(0).toUpperCase();
 
             const managerSection = document.getElementById('nav-manager-section');
@@ -792,6 +795,14 @@
 
         // Navigation Switcher
         window.switchView = function(viewName) {
+            // Protected routes for manager only
+            const managerOnlyViews = ['cabang', 'kategori', 'users'];
+            if (managerOnlyViews.includes(viewName) && (!currentUser || currentUser.role !== 'manager')) {
+                showToast("Akses ditolak! Menu ini khusus akun Manager.", true);
+                switchView('dashboard');
+                return;
+            }
+
             const views = ['dashboard', 'form', 'cabang', 'kategori', 'users'];
             views.forEach(v => {
                 const el = document.getElementById(`view-${v}`);
@@ -830,21 +841,21 @@
             lucide.createIcons();
         };
 
-        // Populate Dropdowns
+        // Populate Dropdowns based on User Accessible Branches
         function populateMasterDropdowns() {
             const filterBranchSelect = document.getElementById('filter-branch-select');
             const batchCabangSelect = document.getElementById('batch-cabang');
-            const userCabangSelect = document.getElementById('user-cabang');
 
-            const branchOpts = dbBranches.map(b => `<option value="${b.name}">${b.name}</option>`).join('');
-            
-            filterBranchSelect.innerHTML = `<option value="ALL">Semua Cabang</option>` + branchOpts;
-            batchCabangSelect.innerHTML = branchOpts;
-            userCabangSelect.innerHTML = branchOpts;
-
-            if (currentUser && currentUser.branch) {
-                batchCabangSelect.value = currentUser.branch;
+            let allowedBranches = dbBranches;
+            if (currentUser && currentUser.role !== 'manager') {
+                const userBranches = currentUser.branches || (currentUser.branch ? [currentUser.branch] : []);
+                allowedBranches = dbBranches.filter(b => userBranches.includes(b.name));
             }
+
+            const branchOpts = allowedBranches.map(b => `<option value="${b.name}">${b.name}</option>`).join('');
+            
+            filterBranchSelect.innerHTML = `<option value="ALL">Semua Cabang (Akses)</option>` + branchOpts;
+            batchCabangSelect.innerHTML = branchOpts;
         }
 
 
@@ -1106,13 +1117,20 @@
             const branchFilter = document.getElementById('filter-branch-select').value;
             const search = document.getElementById('search-ticket-input').value.toLowerCase();
 
-            let totalT = dbTickets.length;
-            let pendingT = dbTickets.filter(t => t.status === 'Menunggu').length;
-            let processT = dbTickets.filter(t => t.status === 'Diproses').length;
-            let completedT = dbTickets.filter(t => t.status === 'Selesai').length;
+            // Filter tickets based on user role permissions
+            let accessibleTickets = dbTickets;
+            if (currentUser && currentUser.role !== 'manager') {
+                const userBranches = currentUser.branches || (currentUser.branch ? [currentUser.branch] : []);
+                accessibleTickets = dbTickets.filter(t => userBranches.includes(t.branch));
+            }
+
+            let totalT = accessibleTickets.length;
+            let pendingT = accessibleTickets.filter(t => t.status === 'Menunggu').length;
+            let processT = accessibleTickets.filter(t => t.status === 'Diproses').length;
+            let completedT = accessibleTickets.filter(t => t.status === 'Selesai').length;
 
             let emergencyItemsCount = 0;
-            dbTickets.forEach(t => {
+            accessibleTickets.forEach(t => {
                 if (t.items) {
                     t.items.forEach(i => {
                         if ((i.priority === 'Darurat' || i.priority === 'Tinggi') && i.status !== 'Selesai') {
@@ -1129,7 +1147,7 @@
             document.getElementById('stat-emergency-items').innerText = emergencyItemsCount;
 
             // Filter
-            let filtered = dbTickets.filter(t => {
+            let filtered = accessibleTickets.filter(t => {
                 const matchStatus = currentDashboardFilter === 'ALL' || t.status === currentDashboardFilter;
                 const matchBranch = branchFilter === 'ALL' || t.branch === branchFilter;
                 const matchSearch = t.code.toLowerCase().includes(search) || 
@@ -1488,29 +1506,35 @@
             showToast("Master Kategori tersimpan di Firestore.");
         });
 
-        // USERS
+        // USERS & MULTI-BRANCH ACCESS
         function renderUsersTable() {
             const tbody = document.getElementById('users-tbody');
-            tbody.innerHTML = dbUsers.map(u => `
-                <tr class="hover:bg-slate-50">
-                    <td class="p-4 font-bold text-slate-800">${u.name}</td>
-                    <td class="p-4 text-slate-600 font-mono">${u.username}</td>
-                    <td class="p-4">
-                        <span class="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase ${u.role === 'manager' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}">${u.role}</span>
-                    </td>
-                    <td class="p-4 text-slate-600">${u.branch || 'Semua Cabang'}</td>
-                    <td class="p-4 text-right">
-                        <button onclick="openModalUser('${u._fbKey}')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-xl mr-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                        <button onclick="confirmDelete('user', '${u._fbKey}')" class="p-1.5 text-red-600 hover:bg-red-50 rounded-xl"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = dbUsers.map(u => {
+                const userBranches = u.branches || (u.branch ? [u.branch] : []);
+                return `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-4 font-bold text-slate-800">${u.name}</td>
+                        <td class="p-4 text-slate-600 font-mono">${u.username}</td>
+                        <td class="p-4">
+                            <span class="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase ${u.role === 'manager' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}">${u.role}</span>
+                        </td>
+                        <td class="p-4 text-slate-600">${userBranches.join(', ') || '-'}</td>
+                        <td class="p-4 text-right">
+                            <button onclick="openModalUser('${u._fbKey}')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-xl mr-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                            <button onclick="confirmDelete('user', '${u._fbKey}')" class="p-1.5 text-red-600 hover:bg-red-50 rounded-xl"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
             lucide.createIcons();
         }
 
         window.openModalUser = function(id = '') {
-            populateMasterDropdowns();
             document.getElementById('user-edit-id').value = id;
+            
+            // Render checkboxes for branches
+            const container = document.getElementById('user-branches-checkboxes');
+            let assignedBranches = [];
 
             if (id) {
                 const u = dbUsers.find(x => x._fbKey === id || x.id === id);
@@ -1519,7 +1543,7 @@
                     document.getElementById('user-username').value = u.username;
                     document.getElementById('user-password').value = u.password;
                     document.getElementById('user-role').value = u.role;
-                    document.getElementById('user-cabang').value = u.branch;
+                    assignedBranches = u.branches || (u.branch ? [u.branch] : []);
                 }
                 document.getElementById('modal-user-title').innerText = 'Edit User';
             } else {
@@ -1527,6 +1551,17 @@
                 document.getElementById('user-edit-id').value = '';
                 document.getElementById('modal-user-title').innerText = 'Tambah User Baru';
             }
+
+            container.innerHTML = dbBranches.map(b => {
+                const isChecked = assignedBranches.includes(b.name) ? 'checked' : '';
+                return `
+                    <label class="flex items-center gap-2 cursor-pointer font-medium text-slate-700">
+                        <input type="checkbox" name="user_branch_cb" value="${b.name}" ${isChecked} class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
+                        <span>${b.name}</span>
+                    </label>
+                `;
+            }).join('');
+
             document.getElementById('modal-user').classList.remove('hidden');
         };
 
@@ -1534,12 +1569,21 @@
             e.preventDefault();
             const id = document.getElementById('user-edit-id').value;
 
+            // Collect checked branches
+            const checkedBoxes = document.querySelectorAll('input[name="user_branch_cb"]:checked');
+            const selectedBranches = Array.from(checkedBoxes).map(cb => cb.value);
+
+            if (selectedBranches.length === 0) {
+                showToast("Pilih minimal satu cabang akses untuk user ini!", true);
+                return;
+            }
+
             const payload = {
                 name: document.getElementById('user-nama').value.trim(),
                 username: document.getElementById('user-username').value.trim(),
                 password: document.getElementById('user-password').value.trim(),
                 role: document.getElementById('user-role').value,
-                branch: document.getElementById('user-cabang').value
+                branches: selectedBranches
             };
 
             if (id) {
