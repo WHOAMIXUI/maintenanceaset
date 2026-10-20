@@ -70,37 +70,20 @@
                         <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Username</label>
                         <div class="relative">
                             <i data-lucide="user" class="w-5 h-5 absolute left-3.5 top-3 text-slate-400"></i>
-                            <input type="text" id="login-username" required placeholder="manager / staff" class="w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all">
+                            <input type="text" id="login-username" required placeholder="Masukkan username" class="w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all">
                         </div>
                     </div>
                     <div>
                         <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Password</label>
                         <div class="relative">
                             <i data-lucide="lock" class="w-5 h-5 absolute left-3.5 top-3 text-slate-400"></i>
-                            <input type="password" id="login-password" required placeholder="123" class="w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all">
+                            <input type="password" id="login-password" required placeholder="Masukkan password" class="w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all">
                         </div>
                     </div>
                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl text-sm transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2">
                         <i data-lucide="log-in" class="w-4 h-4"></i> Masuk ke Sistem
                     </button>
                 </form>
-
-                <!-- Quick Demo Login Buttons -->
-                <div class="relative my-6">
-                    <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200"></div></div>
-                    <div class="relative flex justify-center text-[10px] uppercase"><span class="bg-white px-3 text-slate-400 font-bold tracking-wider">Akses Cepat Demo</span></div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <button type="button" onclick="loginDemo('manager')" class="flex flex-col items-center justify-center p-3 border border-purple-200 bg-purple-50/50 hover:bg-purple-100 text-purple-700 rounded-2xl transition-all group">
-                        <div class="flex items-center gap-1.5 font-bold text-xs"><i data-lucide="shield-check" class="w-4 h-4 text-purple-600"></i> Manager</div>
-                        <span class="text-[10px] text-purple-500 mt-0.5">All Access (Full Admin)</span>
-                    </button>
-                    <button type="button" onclick="loginDemo('staff')" class="flex flex-col items-center justify-center p-3 border border-blue-200 bg-blue-50/50 hover:bg-blue-100 text-blue-700 rounded-2xl transition-all group">
-                        <div class="flex items-center gap-1.5 font-bold text-xs"><i data-lucide="user-check" class="w-4 h-4 text-blue-600"></i> Staff</div>
-                        <span class="text-[10px] text-blue-500 mt-0.5">Pengajuan Perbaikan</span>
-                    </button>
-                </div>
             </div>
         </div>
     </div>
@@ -781,9 +764,13 @@
             }
         };
 
-        // Authentication Logic
-        function doLogin(user) {
+        // Authentication Logic (Dengan Penyimpanan Sesi Login di localStorage)
+        function doLogin(user, saveSession = true) {
             currentUser = user;
+            if (saveSession) {
+                localStorage.setItem('ga_active_user', JSON.stringify(user));
+            }
+
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('user-display-name').innerText = user.name;
             document.getElementById('user-role-badge').innerText = user.role;
@@ -799,14 +786,19 @@
 
             populateMasterDropdowns();
             switchView('dashboard');
-            showToast(`Selamat datang, ${user.name}!`);
         }
 
-        window.loginDemo = function(role) {
-            const user = dbUsers.find(u => u.role === role);
-            if (user) doLogin(user);
-            else showToast("Akun demo belum dimuat dari Firestore", true);
-        };
+        function checkSavedSession() {
+            const savedUser = localStorage.getItem('ga_active_user');
+            if (savedUser) {
+                try {
+                    const parsedUser = JSON.parse(savedUser);
+                    doLogin(parsedUser, false);
+                } catch (e) {
+                    localStorage.removeItem('ga_active_user');
+                }
+            }
+        }
 
         document.getElementById('login-form').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -814,15 +806,21 @@
             const p = document.getElementById('login-password').value.trim();
             const found = dbUsers.find(user => user.username.toLowerCase() === u.toLowerCase() && user.password === p);
 
-            if (found) doLogin(found);
-            else showToast("Username atau Password salah!", true);
+            if (found) {
+                doLogin(found);
+                showToast(`Selamat datang, ${found.name}!`);
+            } else {
+                showToast("Username atau Password salah!", true);
+            }
         });
 
         window.logout = function() {
             currentUser = null;
+            localStorage.removeItem('ga_active_user');
             document.getElementById('login-screen').classList.remove('hidden');
             document.getElementById('login-username').value = '';
             document.getElementById('login-password').value = '';
+            showToast("Berhasil logout");
         };
 
         // Navigation Switcher
@@ -885,6 +883,7 @@
 
         // ==================== BATCH FORM LOGIC ====================
         function initBatchForm() {
+            if (!currentUser) return;
             document.getElementById('batch-pemohon-nama').value = currentUser.name;
             document.getElementById('batch-tanggal').valueAsDate = new Date();
             
@@ -1618,6 +1617,7 @@
         // System Initialization
         window.onload = function() {
             lucide.createIcons();
+            checkSavedSession();
             initFirestoreRealtimeListeners();
         };
     </script>
