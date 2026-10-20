@@ -388,7 +388,7 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <h2 class="font-bold text-slate-800 text-base">Kelola Master Data Cabang</h2>
-                                <p class="text-xs text-slate-500">Daftar cabang/outlet lokasi aset berada.</p>
+                                <p class="text-xs text-slate-500">Daftar cabang/outlet lokasi aset berada. Gunakan tombol panah untuk mengatur urutan susunan.</p>
                             </div>
                             <button onclick="openModalCabang()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm flex items-center gap-1.5">
                                 <i data-lucide="plus" class="w-4 h-4"></i> Tambah Cabang
@@ -398,7 +398,7 @@
                             <table class="w-full text-left text-xs">
                                 <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-bold">
                                     <tr>
-                                        <th class="p-4">ID Cabang</th>
+                                        <th class="p-4 text-center w-24">Urutan</th>
                                         <th class="p-4">Nama Cabang / Outlet</th>
                                         <th class="p-4 text-right">Aksi</th>
                                     </tr>
@@ -415,7 +415,7 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <h2 class="font-bold text-slate-800 text-base">Kelola Master Kategori</h2>
-                                <p class="text-xs text-slate-500">Kategori jenis perbaikan & perlakuan maintenance.</p>
+                                <p class="text-xs text-slate-500">Kategori jenis perbaikan & perlakuan maintenance. Gunakan tombol panah untuk mengatur urutan susunan.</p>
                             </div>
                             <button onclick="openModalKategori()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm flex items-center gap-1.5">
                                 <i data-lucide="plus" class="w-4 h-4"></i> Tambah Kategori
@@ -425,7 +425,7 @@
                             <table class="w-full text-left text-xs">
                                 <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-bold">
                                     <tr>
-                                        <th class="p-4">ID Kategori</th>
+                                        <th class="p-4 text-center w-24">Urutan</th>
                                         <th class="p-4">Nama Kategori</th>
                                         <th class="p-4 text-right">Aksi</th>
                                     </tr>
@@ -659,64 +659,31 @@
         }
         const db = firebase.firestore();
 
-        // Seed Data Awal jika Koleksi Firestore masih kosong
+        // Seed Data Awal untuk Master Data (Pengajuan Tiket Dikosongkan)
         const defaultUsers = [
             { id: 'u1', name: 'Hendra Wijaya', username: 'manager', password: '123', role: 'manager', branch: 'Cilaki' },
             { id: 'u2', name: 'Budi Santoso', username: 'staff', password: '123', role: 'staff', branch: 'Cilaki' }
         ];
 
         const defaultBranches = [
-            { id: 'b1', name: 'Cilaki' },
-            { id: 'b2', name: 'Cibeunying' },
-            { id: 'b3', name: 'Maskumambang' },
-            { id: 'b4', name: 'Cipete' },
-            { id: 'b5', name: 'Bintaro' },
-            { id: 'b6', name: 'Bekasi' },
-            { id: 'b7', name: 'Bogor' },
-            { id: 'b8', name: 'Surabaya Musi' },
-            { id: 'b9', name: 'Surabaya Barat' }
+            { id: 'b1', name: 'Cilaki', order: 1 },
+            { id: 'b2', name: 'Cibeunying', order: 2 },
+            { id: 'b3', name: 'Maskumambang', order: 3 },
+            { id: 'b4', name: 'Cipete', order: 4 },
+            { id: 'b5', name: 'Bintaro', order: 5 },
+            { id: 'b6', name: 'Bekasi', order: 6 },
+            { id: 'b7', name: 'Bogor', order: 7 },
+            { id: 'b8', name: 'Surabaya Musi', order: 8 },
+            { id: 'b9', name: 'Surabaya Barat', order: 9 }
         ];
 
         const defaultCategories = [
-            { id: 'c1', name: 'Bangunan & Plafon' },
-            { id: 'c2', name: 'Kelistrikan' },
-            { id: 'c3', name: 'Saluran Air & Plumbing' },
-            { id: 'c4', name: 'Mesin & Peralatan' },
-            { id: 'c5', name: 'Furniture & Interior' },
-            { id: 'c6', name: 'Lainnya' }
-        ];
-
-        const defaultTickets = [
-            {
-                id: 'tkt-1',
-                code: '#TKT-202610-001',
-                requesterName: 'Budi Santoso',
-                requesterUsername: 'staff',
-                branch: 'Cilaki',
-                date: '2026-10-20',
-                createdAt: new Date().toISOString(),
-                status: 'Diproses',
-                items: [
-                    {
-                        id: 'item-1',
-                        itemName: 'Plafon Kebocoran Ruang Depan',
-                        category: 'Bangunan & Plafon',
-                        priority: 'Tinggi',
-                        description: 'Air menetes deras saat hujan di meja kasir.',
-                        status: 'Diproses',
-                        photoBase64: ''
-                    },
-                    {
-                        id: 'item-2',
-                        itemName: 'AC Kasir Menetes',
-                        category: 'Mesin & Peralatan',
-                        priority: 'Sedang',
-                        description: 'AC indoor kurang dingin dan bocor air.',
-                        status: 'Selesai',
-                        photoBase64: ''
-                    }
-                ]
-            }
+            { id: 'c1', name: 'Bangunan & Plafon', order: 1 },
+            { id: 'c2', name: 'Kelistrikan', order: 2 },
+            { id: 'c3', name: 'Saluran Air & Plumbing', order: 3 },
+            { id: 'c4', name: 'Mesin & Peralatan', order: 4 },
+            { id: 'c5', name: 'Furniture & Interior', order: 5 },
+            { id: 'c6', name: 'Lainnya', order: 6 }
         ];
 
         // Global State Variables
@@ -1390,9 +1357,18 @@
         // CABANG
         function renderCabangTable() {
             const tbody = document.getElementById('cabang-tbody');
-            tbody.innerHTML = dbBranches.map(b => `
+            tbody.innerHTML = dbBranches.map((b, index) => `
                 <tr class="hover:bg-slate-50">
-                    <td class="p-4 font-mono font-bold text-slate-500">${b.id}</td>
+                    <td class="p-4 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <button onclick="moveBranchOrder(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="p-1 text-slate-500 hover:bg-slate-200 disabled:opacity-30 rounded-lg transition-colors">
+                                <i data-lucide="arrow-up" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button onclick="moveBranchOrder(${index}, 1)" ${index === dbBranches.length - 1 ? 'disabled' : ''} class="p-1 text-slate-500 hover:bg-slate-200 disabled:opacity-30 rounded-lg transition-colors">
+                                <i data-lucide="arrow-down" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </td>
                     <td class="p-4 font-bold text-slate-800">${b.name}</td>
                     <td class="p-4 text-right">
                         <button onclick="openModalCabang('${b._fbKey}', '${b.name}')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-xl mr-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
@@ -1402,6 +1378,25 @@
             `).join('');
             lucide.createIcons();
         }
+
+        window.moveBranchOrder = function(index, direction) {
+            const targetIndex = index + direction;
+            if (targetIndex < 0 || targetIndex >= dbBranches.length) return;
+
+            const itemA = dbBranches[index];
+            const itemB = dbBranches[targetIndex];
+
+            const batch = db.batch();
+            const refA = db.collection('branches').doc(itemA._fbKey);
+            const refB = db.collection('branches').doc(itemB._fbKey);
+
+            batch.update(refA, { order: itemB.order || targetIndex + 1 });
+            batch.update(refB, { order: itemA.order || index + 1 });
+
+            batch.commit().then(() => {
+                showToast("Urutan cabang diperbarui!");
+            }).catch(err => showToast("Gagal ubah urutan: " + err.message, true));
+        };
 
         window.openModalCabang = function(id = '', name = '') {
             document.getElementById('cabang-edit-id').value = id;
@@ -1418,7 +1413,8 @@
             if (id) {
                 db.collection('branches').doc(id).update({ name });
             } else {
-                db.collection('branches').add({ id: 'b-' + Date.now(), name });
+                const newOrder = dbBranches.length + 1;
+                db.collection('branches').add({ id: 'b-' + Date.now(), name, order: newOrder });
             }
 
             closeModal('modal-cabang');
@@ -1428,9 +1424,18 @@
         // KATEGORI
         function renderKategoriTable() {
             const tbody = document.getElementById('kategori-tbody');
-            tbody.innerHTML = dbCategories.map(k => `
+            tbody.innerHTML = dbCategories.map((k, index) => `
                 <tr class="hover:bg-slate-50">
-                    <td class="p-4 font-mono font-bold text-slate-500">${k.id}</td>
+                    <td class="p-4 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <button onclick="moveCategoryOrder(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="p-1 text-slate-500 hover:bg-slate-200 disabled:opacity-30 rounded-lg transition-colors">
+                                <i data-lucide="arrow-up" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button onclick="moveCategoryOrder(${index}, 1)" ${index === dbCategories.length - 1 ? 'disabled' : ''} class="p-1 text-slate-500 hover:bg-slate-200 disabled:opacity-30 rounded-lg transition-colors">
+                                <i data-lucide="arrow-down" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </td>
                     <td class="p-4 font-bold text-slate-800">${k.name}</td>
                     <td class="p-4 text-right">
                         <button onclick="openModalKategori('${k._fbKey}', '${k.name}')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-xl mr-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
@@ -1440,6 +1445,25 @@
             `).join('');
             lucide.createIcons();
         }
+
+        window.moveCategoryOrder = function(index, direction) {
+            const targetIndex = index + direction;
+            if (targetIndex < 0 || targetIndex >= dbCategories.length) return;
+
+            const itemA = dbCategories[index];
+            const itemB = dbCategories[targetIndex];
+
+            const batch = db.batch();
+            const refA = db.collection('categories').doc(itemA._fbKey);
+            const refB = db.collection('categories').doc(itemB._fbKey);
+
+            batch.update(refA, { order: itemB.order || targetIndex + 1 });
+            batch.update(refB, { order: itemA.order || index + 1 });
+
+            batch.commit().then(() => {
+                showToast("Urutan kategori diperbarui!");
+            }).catch(err => showToast("Gagal ubah urutan: " + err.message, true));
+        };
 
         window.openModalKategori = function(id = '', name = '') {
             document.getElementById('kategori-edit-id').value = id;
@@ -1456,7 +1480,8 @@
             if (id) {
                 db.collection('categories').doc(id).update({ name });
             } else {
-                db.collection('categories').add({ id: 'c-' + Date.now(), name });
+                const newOrder = dbCategories.length + 1;
+                db.collection('categories').add({ id: 'c-' + Date.now(), name, order: newOrder });
             }
 
             closeModal('modal-kategori');
@@ -1569,46 +1594,48 @@
                 }
             });
 
-            // Branches Collection Listener
+            // Branches Collection Listener (With Sorting)
             db.collection('branches').onSnapshot((snapshot) => {
                 if (snapshot.empty) {
                     defaultBranches.forEach(b => db.collection('branches').add(b));
                 } else {
-                    dbBranches = snapshot.docs.map(doc => ({ ...doc.data(), _fbKey: doc.id }));
+                    dbBranches = snapshot.docs
+                        .map(doc => ({ ...doc.data(), _fbKey: doc.id }))
+                        .sort((a, b) => (a.order || 0) - (b.order || 0));
+                    
                     populateMasterDropdowns();
                     if (!document.getElementById('view-cabang').classList.contains('hidden')) renderCabangTable();
                 }
             });
 
-            // Categories Collection Listener
+            // Categories Collection Listener (With Sorting)
             db.collection('categories').onSnapshot((snapshot) => {
                 if (snapshot.empty) {
                     defaultCategories.forEach(c => db.collection('categories').add(c));
                 } else {
-                    dbCategories = snapshot.docs.map(doc => ({ ...doc.data(), _fbKey: doc.id }));
+                    dbCategories = snapshot.docs
+                        .map(doc => ({ ...doc.data(), _fbKey: doc.id }))
+                        .sort((a, b) => (a.order || 0) - (b.order || 0));
+
                     if (!document.getElementById('view-kategori').classList.contains('hidden')) renderKategoriTable();
                 }
             });
 
             // Tickets Collection Listener (Realtime Sync Engine)
             db.collection('tickets').onSnapshot((snapshot) => {
-                if (snapshot.empty) {
-                    defaultTickets.forEach(t => db.collection('tickets').add(t));
-                } else {
-                    dbTickets = snapshot.docs
-                        .map(doc => ({ ...doc.data(), _fbKey: doc.id }))
-                        .sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
+                dbTickets = snapshot.docs
+                    .map(doc => ({ ...doc.data(), _fbKey: doc.id }))
+                    .sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
 
-                    if (!document.getElementById('view-dashboard').classList.contains('hidden')) {
-                        renderDashboardTickets();
-                    }
+                if (!document.getElementById('view-dashboard').classList.contains('hidden')) {
+                    renderDashboardTickets();
+                }
 
-                    // Refresh Modal Detail jika sedang terbuka
-                    const activeCode = document.getElementById('modal-ticket-code').innerText;
-                    if (activeCode && !document.getElementById('modal-ticket-detail').classList.contains('hidden')) {
-                        const matched = dbTickets.find(t => t.code === activeCode);
-                        if (matched) openTicketDetailModal(matched.id);
-                    }
+                // Refresh Modal Detail jika sedang terbuka
+                const activeCode = document.getElementById('modal-ticket-code').innerText;
+                if (activeCode && !document.getElementById('modal-ticket-detail').classList.contains('hidden')) {
+                    const matched = dbTickets.find(t => t.code === activeCode);
+                    if (matched) openTicketDetailModal(matched.id);
                 }
             });
         }
