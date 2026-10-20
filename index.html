@@ -11,6 +11,10 @@
     <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
+    <!-- Firebase SDK (v9 compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
     <script>
         tailwind.config = {
             theme: {
@@ -56,7 +60,7 @@
                 <h2 class="text-2xl font-black tracking-tight">GA MAINTENANCE</h2>
                 <p class="text-blue-200 text-xs mt-1 font-medium">Sistem Pengajuan Maintenance & Perbaikan Aset</p>
                 <div class="inline-flex items-center gap-1.5 mt-3 bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[10px] px-3 py-1 rounded-full font-semibold">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Mode Offline (LocalStorage Persisten)
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Mode Online Cloud Firestore
                 </div>
             </div>
 
@@ -181,10 +185,9 @@
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <!-- Quick Switch Role Dropdown/Button -->
                     <div class="hidden sm:flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200/80 text-xs">
                         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span class="text-slate-600 font-medium" id="system-status-indicator">LocalStorage Ready</span>
+                        <span class="text-slate-600 font-medium" id="system-status-indicator">Menghubungkan Firestore...</span>
                     </div>
 
                     <button onclick="logout()" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all">
@@ -277,10 +280,10 @@
                         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                             <!-- Status Tabs -->
                             <div class="flex items-center bg-slate-100/80 p-1 rounded-xl w-full sm:w-auto overflow-x-auto text-xs font-semibold">
-                                <button onclick="setDashboardFilter('ALL')" id="filter-tab-ALL" class="px-4 py-2 rounded-lg transition-all bg-white text-slate-800 shadow-sm">Semua</button>
-                                <button onclick="setDashboardFilter('Menunggu')" id="filter-tab-Menunggu" class="px-4 py-2 rounded-lg transition-all text-slate-500 hover:text-slate-800">Menunggu</button>
-                                <button onclick="setDashboardFilter('Diproses')" id="filter-tab-Diproses" class="px-4 py-2 rounded-lg transition-all text-slate-500 hover:text-slate-800">Diproses</button>
-                                <button onclick="setDashboardFilter('Selesai')" id="filter-tab-Selesai" class="px-4 py-2 rounded-lg transition-all text-slate-500 hover:text-slate-800">Selesai</button>
+                                <button onclick="setDashboardFilter('ALL')" id="filter-tab-ALL" class="px-4 py-2 rounded-lg transition-all bg-white text-slate-800 shadow-sm font-bold">Semua</button>
+                                <button onclick="setDashboardFilter('Menunggu')" id="filter-tab-Menunggu" class="px-4 py-2 rounded-lg transition-all text-slate-500 hover:text-slate-800 font-semibold">Menunggu</button>
+                                <button onclick="setDashboardFilter('Diproses')" id="filter-tab-Diproses" class="px-4 py-2 rounded-lg transition-all text-slate-500 hover:text-slate-800 font-semibold">Diproses</button>
+                                <button onclick="setDashboardFilter('Selesai')" id="filter-tab-Selesai" class="px-4 py-2 rounded-lg transition-all text-slate-500 hover:text-slate-800 font-semibold">Selesai</button>
                             </div>
 
                             <!-- Search & Branch Filter -->
@@ -653,15 +656,27 @@
     </div>
 
 
-    <!-- ==================== LOGIC & LOCAL STORAGE SCRIPT ==================== -->
+    <!-- ==================== LOGIC & CLOUD FIRESTORE SCRIPT ==================== -->
     <script>
-        // Storage Keys
-        const KEY_USERS = 'fixit_v2_users';
-        const KEY_BRANCHES = 'fixit_v2_branches';
-        const KEY_CATEGORIES = 'fixit_v2_categories';
-        const KEY_TICKETS = 'fixit_v2_tickets';
+        // =========================================================================
+        // CLOUD FIRESTORE CONFIGURATION
+        // =========================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBc0yCgB6z-uzLx5Ej6J7PggK5viIxZxsc",
+            authDomain: "ga-maintenance-7b25c.firebaseapp.com",
+            projectId: "ga-maintenance-7b25c",
+            storageBucket: "ga-maintenance-7b25c.firebasestorage.app",
+            messagingSenderId: "187937810835",
+            appId: "1:187937810835:web:80f1c4b1fb0c56c6ee6066"
+        };
 
-        // Default Seed Master Data
+        // Initialize Firebase & Firestore
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+
+        // Seed Data Awal jika Koleksi Firestore masih kosong
         const defaultUsers = [
             { id: 'u1', name: 'Hendra Wijaya', username: 'manager', password: '123', role: 'manager', branch: 'Cilaki' },
             { id: 'u2', name: 'Budi Santoso', username: 'staff', password: '123', role: 'staff', branch: 'Cilaki' }
@@ -697,7 +712,7 @@
                 branch: 'Cilaki',
                 date: '2026-10-20',
                 createdAt: new Date().toISOString(),
-                status: 'Diproses', // Menunggu, Diproses, Selesai
+                status: 'Diproses',
                 items: [
                     {
                         id: 'item-1',
@@ -718,52 +733,21 @@
                         photoBase64: ''
                     }
                 ]
-            },
-            {
-                id: 'tkt-2',
-                code: '#TKT-202610-002',
-                requesterName: 'Budi Santoso',
-                requesterUsername: 'staff',
-                branch: 'Cilaki',
-                date: '2026-10-20',
-                createdAt: new Date().toISOString(),
-                status: 'Menunggu',
-                items: [
-                    {
-                        id: 'item-3',
-                        itemName: 'Kran Air Wastafel Patah',
-                        category: 'Saluran Air & Plumbing',
-                        priority: 'Darurat',
-                        description: 'Kran patah dan air mengalir terus.',
-                        status: 'Menunggu',
-                        photoBase64: ''
-                    }
-                ]
             }
         ];
 
         // Global State Variables
         let currentUser = null;
         let currentDashboardFilter = 'ALL';
-        let draftItems = []; // Draft items for multi-item submission form
-        
-        // Pagination State
+        let draftItems = [];
         let currentPage = 1;
         let itemsPerPage = 10;
 
-        // LocalStorage Data Access Helper
-        function getData(key, fallback) {
-            const stored = localStorage.getItem(key);
-            if (!stored) {
-                localStorage.setItem(key, JSON.stringify(fallback));
-                return fallback;
-            }
-            return JSON.parse(stored);
-        }
-
-        function saveData(key, data) {
-            localStorage.setItem(key, JSON.stringify(data));
-        }
+        // Memory Buffers (Firestore Data)
+        let dbUsers = [];
+        let dbBranches = [];
+        let dbCategories = [];
+        let dbTickets = [];
 
         // Toast Helper
         function showToast(msg, isError = false) {
@@ -806,7 +790,6 @@
             document.getElementById('user-branch-display').innerText = user.branch || 'Semua Cabang';
             document.getElementById('user-avatar').innerText = user.name.charAt(0).toUpperCase();
 
-            // Manager menu visibility
             const managerSection = document.getElementById('nav-manager-section');
             if (user.role === 'manager') {
                 managerSection.classList.remove('hidden');
@@ -820,18 +803,16 @@
         }
 
         window.loginDemo = function(role) {
-            const users = getData(KEY_USERS, defaultUsers);
-            const user = users.find(u => u.role === role);
+            const user = dbUsers.find(u => u.role === role);
             if (user) doLogin(user);
-            else showToast("Akun demo tidak ditemukan", true);
+            else showToast("Akun demo belum dimuat dari Firestore", true);
         };
 
         document.getElementById('login-form').addEventListener('submit', (e) => {
             e.preventDefault();
             const u = document.getElementById('login-username').value.trim();
             const p = document.getElementById('login-password').value.trim();
-            const users = getData(KEY_USERS, defaultUsers);
-            const found = users.find(user => user.username.toLowerCase() === u.toLowerCase() && user.password === p);
+            const found = dbUsers.find(user => user.username.toLowerCase() === u.toLowerCase() && user.password === p);
 
             if (found) doLogin(found);
             else showToast("Username atau Password salah!", true);
@@ -884,14 +865,13 @@
             lucide.createIcons();
         };
 
-        // Populate Dropdowns from LocalStorage
+        // Populate Dropdowns
         function populateMasterDropdowns() {
-            const branches = getData(KEY_BRANCHES, defaultBranches);
             const filterBranchSelect = document.getElementById('filter-branch-select');
             const batchCabangSelect = document.getElementById('batch-cabang');
             const userCabangSelect = document.getElementById('user-cabang');
 
-            const branchOpts = branches.map(b => `<option value="${b.name}">${b.name}</option>`).join('');
+            const branchOpts = dbBranches.map(b => `<option value="${b.name}">${b.name}</option>`).join('');
             
             filterBranchSelect.innerHTML = `<option value="ALL">Semua Cabang</option>` + branchOpts;
             batchCabangSelect.innerHTML = branchOpts;
@@ -903,16 +883,14 @@
         }
 
 
-        // ==================== BATCH SUBMISSION FORM LOGIC ====================
+        // ==================== BATCH FORM LOGIC ====================
         function initBatchForm() {
             document.getElementById('batch-pemohon-nama').value = currentUser.name;
             document.getElementById('batch-tanggal').valueAsDate = new Date();
             
-            // Auto Ticket Code preview
             const randomCode = '#TKT-' + new Date().getFullYear() + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + Math.floor(100 + Math.random() * 900);
             document.getElementById('ticket-code-preview').innerText = randomCode;
 
-            // Reset draft items to 1 empty item
             draftItems = [
                 {
                     id: Date.now(),
@@ -950,7 +928,6 @@
 
         function renderDraftItems() {
             const container = document.getElementById('draft-items-container');
-            const categories = getData(KEY_CATEGORIES, defaultCategories);
             document.getElementById('draft-item-count-badge').innerText = `${draftItems.length} Item`;
 
             container.innerHTML = draftItems.map((item, idx) => `
@@ -973,7 +950,7 @@
                             <label class="block text-xs font-bold text-slate-700 mb-1">Kategori Perbaikan <span class="text-red-500">*</span></label>
                             <select required onchange="updateDraftField(${idx}, 'category', this.value)" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-500/20">
                                 <option value="">-- Pilih Kategori --</option>
-                                ${categories.map(c => `<option value="${c.name}" ${item.category === c.name ? 'selected' : ''}>${c.name}</option>`).join('')}
+                                ${dbCategories.map(c => `<option value="${c.name}" ${item.category === c.name ? 'selected' : ''}>${c.name}</option>`).join('')}
                             </select>
                         </div>
                     </div>
@@ -1005,7 +982,6 @@
                         <textarea rows="2" required placeholder="Jelaskan detail lokasi dan kronologi kerusakan..." onchange="updateDraftField(${idx}, 'description', this.value)" class="w-full p-3 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-500/20">${item.description}</textarea>
                     </div>
 
-                    <!-- UPLOAD & AMBIL FOTO DIRECT KAMERA -->
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1.5">Foto Kerusakan Aset (Opsional)</label>
                         <div class="flex flex-wrap items-center gap-2">
@@ -1040,21 +1016,15 @@
         }
 
         window.updateDraftField = function(index, field, value) {
-            if (draftItems[index]) {
-                draftItems[index][field] = value;
-            }
+            if (draftItems[index]) draftItems[index][field] = value;
         };
 
-        // Automatic Image Compression & Handling
         window.handleDraftPhotoUpload = function(input, index) {
             if (input.files && input.files[0]) {
-                const file = input.files[0];
                 const reader = new FileReader();
-
                 reader.onload = function(e) {
                     const img = new Image();
                     img.onload = function() {
-                        // Compress image so LocalStorage doesn't lag
                         const canvas = document.createElement('canvas');
                         let width = img.width;
                         let height = img.height;
@@ -1062,15 +1032,9 @@
                         const MAX_HEIGHT = 800;
 
                         if (width > height) {
-                            if (width > MAX_WIDTH) {
-                                height *= MAX_WIDTH / width;
-                                width = MAX_WIDTH;
-                            }
+                            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
                         } else {
-                            if (height > MAX_HEIGHT) {
-                                width *= MAX_HEIGHT / height;
-                                height = MAX_HEIGHT;
-                            }
+                            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
                         }
 
                         canvas.width = width;
@@ -1078,7 +1042,6 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
 
-                        // Compress to 0.7 quality JPEG
                         const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
                         draftItems[index].photoBase64 = compressedBase64;
                         renderDraftItems();
@@ -1086,8 +1049,7 @@
                     };
                     img.src = e.target.result;
                 };
-
-                reader.readAsDataURL(file);
+                reader.readAsDataURL(input.files[0]);
             }
         };
 
@@ -1102,7 +1064,6 @@
         document.getElementById('form-batch-pengajuan').addEventListener('submit', (e) => {
             e.preventDefault();
             
-            // Validate items
             for (let i = 0; i < draftItems.length; i++) {
                 if (!draftItems[i].itemName.trim() || !draftItems[i].category || !draftItems[i].description.trim()) {
                     showToast(`Harap lengkapi semua field wajib pada Item #${i + 1}!`, true);
@@ -1110,9 +1071,7 @@
                 }
             }
 
-            let tickets = getData(KEY_TICKETS, defaultTickets);
             const ticketCode = document.getElementById('ticket-code-preview').innerText;
-
             const newTicket = {
                 id: 'tkt-' + Date.now(),
                 code: ticketCode,
@@ -1133,15 +1092,19 @@
                 }))
             };
 
-            tickets.unshift(newTicket);
-            saveData(KEY_TICKETS, tickets);
-
-            showToast(`Pengajuan Tiket ${ticketCode} dengan ${draftItems.length} item berhasil dikirim!`);
-            switchView('dashboard');
+            // Save document to Firestore
+            db.collection('tickets').add(newTicket)
+                .then(() => {
+                    showToast(`Pengajuan Tiket ${ticketCode} berhasil dikirim ke Cloud Firestore!`);
+                    switchView('dashboard');
+                })
+                .catch((err) => {
+                    showToast("Gagal menyimpan ke Firestore: " + err.message, true);
+                });
         });
 
 
-        // ==================== DASHBOARD & TICKETS RENDER WITH PAGINATION ====================
+        // ==================== DASHBOARD RENDER & PAGINATION ====================
         window.handleSearchOrFilter = function() {
             currentPage = 1;
             renderDashboardTickets();
@@ -1149,7 +1112,7 @@
 
         window.setDashboardFilter = function(status) {
             currentDashboardFilter = status;
-            currentPage = 1; // Reset to page 1
+            currentPage = 1;
             ['ALL', 'Menunggu', 'Diproses', 'Selesai'].forEach(s => {
                 const btn = document.getElementById(`filter-tab-${s}`);
                 if (s === status) {
@@ -1177,21 +1140,20 @@
             const branchFilter = document.getElementById('filter-branch-select').value;
             const search = document.getElementById('search-ticket-input').value.toLowerCase();
 
-            let tickets = getData(KEY_TICKETS, defaultTickets);
-
-            // Calculate Metric Stats
-            let totalT = tickets.length;
-            let pendingT = tickets.filter(t => t.status === 'Menunggu').length;
-            let processT = tickets.filter(t => t.status === 'Diproses').length;
-            let completedT = tickets.filter(t => t.status === 'Selesai').length;
+            let totalT = dbTickets.length;
+            let pendingT = dbTickets.filter(t => t.status === 'Menunggu').length;
+            let processT = dbTickets.filter(t => t.status === 'Diproses').length;
+            let completedT = dbTickets.filter(t => t.status === 'Selesai').length;
 
             let emergencyItemsCount = 0;
-            tickets.forEach(t => {
-                t.items.forEach(i => {
-                    if ((i.priority === 'Darurat' || i.priority === 'Tinggi') && i.status !== 'Selesai') {
-                        emergencyItemsCount++;
-                    }
-                });
+            dbTickets.forEach(t => {
+                if (t.items) {
+                    t.items.forEach(i => {
+                        if ((i.priority === 'Darurat' || i.priority === 'Tinggi') && i.status !== 'Selesai') {
+                            emergencyItemsCount++;
+                        }
+                    });
+                }
             });
 
             document.getElementById('stat-total-tickets').innerText = totalT;
@@ -1200,14 +1162,14 @@
             document.getElementById('stat-completed-tickets').innerText = completedT;
             document.getElementById('stat-emergency-items').innerText = emergencyItemsCount;
 
-            // Apply Filters
-            let filtered = tickets.filter(t => {
+            // Filter
+            let filtered = dbTickets.filter(t => {
                 const matchStatus = currentDashboardFilter === 'ALL' || t.status === currentDashboardFilter;
                 const matchBranch = branchFilter === 'ALL' || t.branch === branchFilter;
                 const matchSearch = t.code.toLowerCase().includes(search) || 
                                     t.requesterName.toLowerCase().includes(search) || 
                                     t.branch.toLowerCase().includes(search) ||
-                                    t.items.some(i => i.itemName.toLowerCase().includes(search));
+                                    (t.items && t.items.some(i => i.itemName.toLowerCase().includes(search)));
                 return matchStatus && matchBranch && matchSearch;
             });
 
@@ -1218,7 +1180,6 @@
                 return;
             }
 
-            // Calculate Pagination
             const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
             if (currentPage > totalPages) currentPage = totalPages;
             if (currentPage < 1) currentPage = 1;
@@ -1227,10 +1188,7 @@
             const endIndex = Math.min(startIndex + itemsPerPage, filtered.length);
             const pageTickets = filtered.slice(startIndex, endIndex);
 
-            // Update Pagination Info
             document.getElementById('pagination-info').innerText = `Menampilkan ${startIndex + 1} - ${endIndex} dari ${filtered.length} tiket`;
-
-            // Render Pagination Control Buttons
             renderPaginationControls(totalPages);
 
             const statusBadge = (s) => {
@@ -1242,8 +1200,9 @@
             const isManager = currentUser && currentUser.role === 'manager';
 
             tbody.innerHTML = pageTickets.map(t => {
-                const totalItems = t.items.length;
-                const doneItems = t.items.filter(i => i.status === 'Selesai').length;
+                const items = t.items || [];
+                const totalItems = items.length;
+                const doneItems = items.filter(i => i.status === 'Selesai').length;
                 const progressPct = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
 
                 return `
@@ -1278,7 +1237,7 @@
                                 Detail / Ubah
                             </button>
                             ${isManager ? `
-                                <button onclick="confirmDelete('ticket', '${t.id}')" class="p-1.5 text-red-500 hover:bg-red-50 rounded-xl transition-colors">
+                                <button onclick="confirmDelete('ticket', '${t._fbKey}')" class="p-1.5 text-red-500 hover:bg-red-50 rounded-xl transition-colors">
                                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                                 </button>
                             ` : ''}
@@ -1292,23 +1251,17 @@
 
         function renderPaginationControls(totalPages) {
             const container = document.getElementById('pagination-controls');
-            if (!container) return;
-
-            if (totalPages <= 1) {
+            if (!container || totalPages <= 1) {
                 container.innerHTML = '';
                 return;
             }
 
-            let html = '';
-
-            // Prev button
-            html += `
+            let html = `
                 <button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} class="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-xs font-semibold flex items-center gap-1">
                     <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i> Prev
                 </button>
             `;
 
-            // Page numbers
             for (let p = 1; p <= totalPages; p++) {
                 if (p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1)) {
                     const isActive = p === currentPage;
@@ -1322,7 +1275,6 @@
                 }
             }
 
-            // Next button
             html += `
                 <button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''} class="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-xs font-semibold flex items-center gap-1">
                     Next <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
@@ -1333,27 +1285,26 @@
         }
 
 
-        // ==================== TIKET DETAIL & ITEM STATUS UPDATE MODAL ====================
+        // ==================== TIKET DETAIL & ITEM STATUS UPDATE ====================
         window.openTicketDetailModal = function(ticketId) {
-            const tickets = getData(KEY_TICKETS, defaultTickets);
-            const ticket = tickets.find(t => t.id === ticketId);
+            const ticket = dbTickets.find(t => t.id === ticketId);
             if (!ticket) return;
 
             document.getElementById('modal-ticket-code').innerText = ticket.code;
             document.getElementById('modal-ticket-meta').innerText = `Pemohon: ${ticket.requesterName} | Cabang: ${ticket.branch} | Tgl: ${ticket.date}`;
 
-            const totalItems = ticket.items.length;
-            const doneItems = ticket.items.filter(i => i.status === 'Selesai').length;
+            const items = ticket.items || [];
+            const totalItems = items.length;
+            const doneItems = items.filter(i => i.status === 'Selesai').length;
             const progressPct = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
 
             document.getElementById('modal-ticket-progress-text').innerText = `${doneItems} dari ${totalItems} Item Selesai (${progressPct}%)`;
             document.getElementById('modal-ticket-progress-bar').style.width = `${progressPct}%`;
 
             const isManager = currentUser && currentUser.role === 'manager';
-
-            // Items List Container
             const itemsContainer = document.getElementById('modal-ticket-items-list');
-            itemsContainer.innerHTML = ticket.items.map((item, idx) => {
+
+            itemsContainer.innerHTML = items.map((item, idx) => {
                 let priorityClass = 'bg-slate-100 text-slate-700';
                 if (item.priority === 'Rendah') priorityClass = 'bg-emerald-100 text-emerald-700';
                 if (item.priority === 'Sedang') priorityClass = 'bg-amber-100 text-amber-700';
@@ -1383,7 +1334,7 @@
                         <div class="flex items-center justify-between pt-2 border-t border-slate-200/60">
                             <span class="text-[11px] font-bold text-slate-500">Status Item:</span>
                             ${isManager ? `
-                                <select onchange="updateItemStatus('${ticket.id}', '${item.id}', this.value)" class="text-xs font-bold px-2.5 py-1 border border-slate-200 rounded-xl bg-white outline-none">
+                                <select onchange="updateItemStatus('${ticket._fbKey}', '${item.id}', this.value)" class="text-xs font-bold px-2.5 py-1 border border-slate-200 rounded-xl bg-white outline-none">
                                     <option value="Menunggu" ${item.status === 'Menunggu' ? 'selected' : ''}>Menunggu</option>
                                     <option value="Diproses" ${item.status === 'Diproses' ? 'selected' : ''}>Diproses</option>
                                     <option value="Selesai" ${item.status === 'Selesai' ? 'selected' : ''}>Selesai</option>
@@ -1402,32 +1353,31 @@
             lucide.createIcons();
         };
 
-        window.updateItemStatus = function(ticketId, itemId, newStatus) {
-            let tickets = getData(KEY_TICKETS, defaultTickets);
-            const ticket = tickets.find(t => t.id === ticketId);
+        window.updateItemStatus = function(fbKey, itemId, newStatus) {
+            const ticket = dbTickets.find(t => t._fbKey === fbKey);
             if (!ticket) return;
 
             const item = ticket.items.find(i => i.id === itemId);
             if (item) {
                 item.status = newStatus;
 
-                // Auto Recalculate Overall Ticket Status
                 const total = ticket.items.length;
                 const completedCount = ticket.items.filter(i => i.status === 'Selesai').length;
                 const processCount = ticket.items.filter(i => i.status === 'Diproses').length;
 
-                if (completedCount === total) {
-                    ticket.status = 'Selesai';
-                } else if (completedCount > 0 || processCount > 0) {
-                    ticket.status = 'Diproses';
-                } else {
-                    ticket.status = 'Menunggu';
-                }
+                if (completedCount === total) ticket.status = 'Selesai';
+                else if (completedCount > 0 || processCount > 0) ticket.status = 'Diproses';
+                else ticket.status = 'Menunggu';
 
-                saveData(KEY_TICKETS, tickets);
-                openTicketDetailModal(ticketId); // Refresh modal view
-                renderDashboardTickets(); // Refresh dashboard table
-                showToast("Status item perbaikan berhasil diperbarui!");
+                // Sync Document Update in Cloud Firestore
+                db.collection('tickets').doc(fbKey).update({
+                    status: ticket.status,
+                    items: ticket.items
+                }).then(() => {
+                    showToast("Status item berhasil diperbarui secara realtime!");
+                }).catch((err) => {
+                    showToast("Gagal update status: " + err.message, true);
+                });
             }
         };
 
@@ -1437,18 +1387,17 @@
         };
 
 
-        // ==================== MASTER DATA MANAGEMENT (CABANG, KATEGORI, USERS) ====================
+        // ==================== MASTER DATA MANAGEMENT ====================
         // CABANG
         function renderCabangTable() {
             const tbody = document.getElementById('cabang-tbody');
-            const branches = getData(KEY_BRANCHES, defaultBranches);
-            tbody.innerHTML = branches.map(b => `
+            tbody.innerHTML = dbBranches.map(b => `
                 <tr class="hover:bg-slate-50">
                     <td class="p-4 font-mono font-bold text-slate-500">${b.id}</td>
                     <td class="p-4 font-bold text-slate-800">${b.name}</td>
                     <td class="p-4 text-right">
-                        <button onclick="openModalCabang('${b.id}', '${b.name}')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-xl mr-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                        <button onclick="confirmDelete('cabang', '${b.id}')" class="p-1.5 text-red-600 hover:bg-red-50 rounded-xl"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        <button onclick="openModalCabang('${b._fbKey}', '${b.name}')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-xl mr-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                        <button onclick="confirmDelete('cabang', '${b._fbKey}')" class="p-1.5 text-red-600 hover:bg-red-50 rounded-xl"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                     </td>
                 </tr>
             `).join('');
@@ -1464,35 +1413,29 @@
 
         document.getElementById('form-cabang-master').addEventListener('submit', (e) => {
             e.preventDefault();
-            let branches = getData(KEY_BRANCHES, defaultBranches);
             const id = document.getElementById('cabang-edit-id').value;
             const name = document.getElementById('cabang-nama').value.trim();
 
             if (id) {
-                const idx = branches.findIndex(b => b.id === id);
-                if (idx !== -1) branches[idx].name = name;
+                db.collection('branches').doc(id).update({ name });
             } else {
-                branches.push({ id: 'b-' + Date.now(), name });
+                db.collection('branches').add({ id: 'b-' + Date.now(), name });
             }
 
-            saveData(KEY_BRANCHES, branches);
-            populateMasterDropdowns();
-            renderCabangTable();
             closeModal('modal-cabang');
-            showToast("Master Cabang tersimpan.");
+            showToast("Master Cabang tersimpan di Firestore.");
         });
 
         // KATEGORI
         function renderKategoriTable() {
             const tbody = document.getElementById('kategori-tbody');
-            const categories = getData(KEY_CATEGORIES, defaultCategories);
-            tbody.innerHTML = categories.map(k => `
+            tbody.innerHTML = dbCategories.map(k => `
                 <tr class="hover:bg-slate-50">
                     <td class="p-4 font-mono font-bold text-slate-500">${k.id}</td>
                     <td class="p-4 font-bold text-slate-800">${k.name}</td>
                     <td class="p-4 text-right">
-                        <button onclick="openModalKategori('${k.id}', '${k.name}')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-xl mr-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                        <button onclick="confirmDelete('kategori', '${k.id}')" class="p-1.5 text-red-600 hover:bg-red-50 rounded-xl"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        <button onclick="openModalKategori('${k._fbKey}', '${k.name}')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-xl mr-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                        <button onclick="confirmDelete('kategori', '${k._fbKey}')" class="p-1.5 text-red-600 hover:bg-red-50 rounded-xl"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                     </td>
                 </tr>
             `).join('');
@@ -1508,28 +1451,23 @@
 
         document.getElementById('form-kategori-master').addEventListener('submit', (e) => {
             e.preventDefault();
-            let categories = getData(KEY_CATEGORIES, defaultCategories);
             const id = document.getElementById('kategori-edit-id').value;
             const name = document.getElementById('kategori-nama').value.trim();
 
             if (id) {
-                const idx = categories.findIndex(c => c.id === id);
-                if (idx !== -1) categories[idx].name = name;
+                db.collection('categories').doc(id).update({ name });
             } else {
-                categories.push({ id: 'c-' + Date.now(), name });
+                db.collection('categories').add({ id: 'c-' + Date.now(), name });
             }
 
-            saveData(KEY_CATEGORIES, categories);
-            renderKategoriTable();
             closeModal('modal-kategori');
-            showToast("Master Kategori tersimpan.");
+            showToast("Master Kategori tersimpan di Firestore.");
         });
 
         // USERS
         function renderUsersTable() {
             const tbody = document.getElementById('users-tbody');
-            const users = getData(KEY_USERS, defaultUsers);
-            tbody.innerHTML = users.map(u => `
+            tbody.innerHTML = dbUsers.map(u => `
                 <tr class="hover:bg-slate-50">
                     <td class="p-4 font-bold text-slate-800">${u.name}</td>
                     <td class="p-4 text-slate-600 font-mono">${u.username}</td>
@@ -1538,8 +1476,8 @@
                     </td>
                     <td class="p-4 text-slate-600">${u.branch || 'Semua Cabang'}</td>
                     <td class="p-4 text-right">
-                        <button onclick="openModalUser('${u.id}')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-xl mr-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                        <button onclick="confirmDelete('user', '${u.id}')" class="p-1.5 text-red-600 hover:bg-red-50 rounded-xl"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        <button onclick="openModalUser('${u._fbKey}')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-xl mr-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                        <button onclick="confirmDelete('user', '${u._fbKey}')" class="p-1.5 text-red-600 hover:bg-red-50 rounded-xl"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                     </td>
                 </tr>
             `).join('');
@@ -1549,10 +1487,9 @@
         window.openModalUser = function(id = '') {
             populateMasterDropdowns();
             document.getElementById('user-edit-id').value = id;
-            const users = getData(KEY_USERS, defaultUsers);
 
             if (id) {
-                const u = users.find(x => x.id === id);
+                const u = dbUsers.find(x => x._fbKey === id || x.id === id);
                 if (u) {
                     document.getElementById('user-nama').value = u.name;
                     document.getElementById('user-username').value = u.username;
@@ -1571,7 +1508,6 @@
 
         document.getElementById('form-user').addEventListener('submit', (e) => {
             e.preventDefault();
-            let users = getData(KEY_USERS, defaultUsers);
             const id = document.getElementById('user-edit-id').value;
 
             const payload = {
@@ -1583,59 +1519,106 @@
             };
 
             if (id) {
-                const idx = users.findIndex(u => u.id === id);
-                if (idx !== -1) users[idx] = { ...users[idx], ...payload };
+                db.collection('users').doc(id).update(payload);
             } else {
-                users.push({ id: 'u-' + Date.now(), ...payload });
+                db.collection('users').add({ id: 'u-' + Date.now(), ...payload });
             }
 
-            saveData(KEY_USERS, users);
-            renderUsersTable();
             closeModal('modal-user');
-            showToast("Data akun pengguna tersimpan.");
+            showToast("Data akun pengguna tersimpan di Firestore.");
         });
 
         // DELETE CONFIRMATION
-        window.confirmDelete = function(type, id) {
+        window.confirmDelete = function(type, key) {
             const modal = document.getElementById('modal-confirm');
             const actBtn = document.getElementById('btn-confirm-act');
             modal.classList.remove('hidden');
 
             actBtn.onclick = () => {
-                if (type === 'ticket') {
-                    let tickets = getData(KEY_TICKETS, defaultTickets);
-                    saveData(KEY_TICKETS, tickets.filter(t => t.id !== id));
-                    renderDashboardTickets();
-                } else if (type === 'cabang') {
-                    let branches = getData(KEY_BRANCHES, defaultBranches);
-                    saveData(KEY_BRANCHES, branches.filter(b => b.id !== id));
-                    populateMasterDropdowns();
-                    renderCabangTable();
-                } else if (type === 'kategori') {
-                    let kats = getData(KEY_CATEGORIES, defaultCategories);
-                    saveData(KEY_CATEGORIES, kats.filter(k => k.id !== id));
-                    renderKategoriTable();
-                } else if (type === 'user') {
-                    let users = getData(KEY_USERS, defaultUsers);
-                    saveData(KEY_USERS, users.filter(u => u.id !== id));
-                    renderUsersTable();
-                }
+                const collectionMap = {
+                    ticket: 'tickets',
+                    cabang: 'branches',
+                    kategori: 'categories',
+                    user: 'users'
+                };
+
+                db.collection(collectionMap[type]).doc(key).delete()
+                    .then(() => {
+                        showToast("Data berhasil dihapus dari Cloud Firestore!");
+                    })
+                    .catch((err) => {
+                        showToast("Gagal menghapus: " + err.message, true);
+                    });
 
                 closeModal('modal-confirm');
-                showToast("Data berhasil dihapus.");
             };
         };
 
 
+        // ==================== REALTIME CLOUD FIRESTORE LISTENERS ====================
+        function initFirestoreRealtimeListeners() {
+            // Status Indicator
+            document.getElementById('system-status-indicator').innerText = 'Cloud Firestore Active';
+
+            // Users Collection Listener
+            db.collection('users').onSnapshot((snapshot) => {
+                if (snapshot.empty) {
+                    defaultUsers.forEach(u => db.collection('users').add(u));
+                } else {
+                    dbUsers = snapshot.docs.map(doc => ({ ...doc.data(), _fbKey: doc.id }));
+                    if (!document.getElementById('view-users').classList.contains('hidden')) renderUsersTable();
+                }
+            });
+
+            // Branches Collection Listener
+            db.collection('branches').onSnapshot((snapshot) => {
+                if (snapshot.empty) {
+                    defaultBranches.forEach(b => db.collection('branches').add(b));
+                } else {
+                    dbBranches = snapshot.docs.map(doc => ({ ...doc.data(), _fbKey: doc.id }));
+                    populateMasterDropdowns();
+                    if (!document.getElementById('view-cabang').classList.contains('hidden')) renderCabangTable();
+                }
+            });
+
+            // Categories Collection Listener
+            db.collection('categories').onSnapshot((snapshot) => {
+                if (snapshot.empty) {
+                    defaultCategories.forEach(c => db.collection('categories').add(c));
+                } else {
+                    dbCategories = snapshot.docs.map(doc => ({ ...doc.data(), _fbKey: doc.id }));
+                    if (!document.getElementById('view-kategori').classList.contains('hidden')) renderKategoriTable();
+                }
+            });
+
+            // Tickets Collection Listener (Realtime Sync Engine)
+            db.collection('tickets').onSnapshot((snapshot) => {
+                if (snapshot.empty) {
+                    defaultTickets.forEach(t => db.collection('tickets').add(t));
+                } else {
+                    dbTickets = snapshot.docs
+                        .map(doc => ({ ...doc.data(), _fbKey: doc.id }))
+                        .sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
+
+                    if (!document.getElementById('view-dashboard').classList.contains('hidden')) {
+                        renderDashboardTickets();
+                    }
+
+                    // Refresh Modal Detail jika sedang terbuka
+                    const activeCode = document.getElementById('modal-ticket-code').innerText;
+                    if (activeCode && !document.getElementById('modal-ticket-detail').classList.contains('hidden')) {
+                        const matched = dbTickets.find(t => t.code === activeCode);
+                        if (matched) openTicketDetailModal(matched.id);
+                    }
+                }
+            });
+        }
+
+
         // System Initialization
         window.onload = function() {
-            // Seed defaults if empty
-            getData(KEY_USERS, defaultUsers);
-            getData(KEY_BRANCHES, defaultBranches);
-            getData(KEY_CATEGORIES, defaultCategories);
-            getData(KEY_TICKETS, defaultTickets);
-
             lucide.createIcons();
+            initFirestoreRealtimeListeners();
         };
     </script>
 </body>
