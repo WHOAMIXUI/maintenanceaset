@@ -1135,7 +1135,7 @@
                         </div>
                         ${item.photoBase64 ? `
                             <div class="mt-2.5 flex items-center gap-3 bg-emerald-500/60 p-2 rounded-xl border border-emerald-500/80 w-fit">
-                                <img src="${item.photoBase64}" class="h-14 w-14 object-cover rounded-lg border border-white/10 shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onclick="showTicketPhoto('${ticket._fbKey}', '${item.id}')">
+                                <img src="${item.photoBase64}" class="h-14 w-14 object-cover rounded-lg border border-white/10 shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onclick="showDraftPhoto(${idx})">
                                 <div>
                                     <span class="text-[11px] text-emerald-300 font-bold flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Foto Berhasil Diunggah</span>
                                     <p class="text-[10px] text-dobah-200/80 mt-0.5">Klik gambar untuk memperbesar</p>
@@ -1154,11 +1154,17 @@
         };
 
         window.handleDraftPhotoUpload = function(input, index) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = new Image();
-                    img.onload = function() {
+            const file = input.files && input.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) { showToast("File harus berupa gambar", true); input.value = ''; return; }
+            showToast("Memproses foto...");
+            const reader = new FileReader();
+            reader.onerror = function() { showToast("Gagal membaca file foto", true); input.value = ''; };
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onerror = function() { showToast("Foto gagal dimuat, coba file lain", true); input.value = ''; };
+                img.onload = function() {
+                    try {
                         const canvas = document.createElement('canvas');
                         let width = img.width;
                         let height = img.height;
@@ -1176,15 +1182,17 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
 
-                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-                        draftItems[index].photoBase64 = compressedBase64;
+                        draftItems[index].photoBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                        showToast("Foto berhasil di-upload!");
                         renderDraftItems();
-                        showToast("Foto ter-upload dan di-kompresi!");
-                    };
-                    img.src = e.target.result;
+                    } catch (err) {
+                        console.error(err);
+                        showToast("Gagal memproses foto", true);
+                    }
                 };
-                reader.readAsDataURL(input.files[0]);
-            }
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
         };
 
         window.removeDraftPhoto = function(index) {
