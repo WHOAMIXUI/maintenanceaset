@@ -568,6 +568,11 @@
                         <!-- Dynamic Item Details -->
                     </div>
                 </div>
+                <!-- Galeri Foto Kerusakan -->
+                <div id="modal-ticket-photos-wrap" class="hidden">
+                    <h4 class="text-xs font-extrabold uppercase tracking-wider text-dobah-200/80 mb-3 flex items-center gap-1.5"><i data-lucide="camera" class="w-3.5 h-3.5"></i> Foto Kerusakan <span id="modal-ticket-photos-count" class="text-dobah-300"></span></h4>
+                    <div id="modal-ticket-photos" class="flex flex-wrap gap-3"></div>
+                </div>
                 <div>
                     <h4 class="text-xs font-extrabold uppercase tracking-wider text-dobah-200/80 mb-3">Riwayat Aktivitas</h4>
                     <ol id="modal-ticket-history" class="space-y-2 text-xs text-dobah-200"></ol>
@@ -1490,11 +1495,10 @@
                         ${isManager ? `<div class="space-y-1.5"><label class="text-[11px] font-bold text-dobah-200/80">Catatan Penanganan GA</label><div class="flex gap-2"><textarea id="note-${item.id}" rows="2" placeholder="Tindakan, vendor, estimasi selesai..." class="flex-1 p-2.5 border border-white/10 rounded-xl text-xs outline-none focus:ring-2 focus:ring-dobah-400/20">${esc(item.note || '')}</textarea><button onclick="saveItemNote('${ticket._fbKey}', '${item.id}')" class="self-end px-3 py-2 bg-dobah-400 hover:bg-dobah-500 text-cocoa-950 rounded-xl text-[11px] font-bold">Simpan</button></div></div>` : (item.note ? `<div class="bg-dobah-400/15 border border-dobah-400/30 rounded-xl p-2.5 text-xs text-dobah-200"><b class="text-dobah-300">Catatan GA:</b> ${esc(item.note)}</div>` : '')}
 
                         ${item.photoBase64 ? `
-                            <div>
-                                <button onclick="showTicketPhoto('${ticket._fbKey}', '${item.id}')" class="text-xs text-dobah-300 font-bold underline flex items-center gap-1 hover:text-dobah-300">
-                                    <i data-lucide="image" class="w-3.5 h-3.5"></i> Lihat Foto Kerusakan
-                                </button>
-                            </div>
+                            <button type="button" onclick="showTicketPhoto('${ticket._fbKey}', '${item.id}')" class="flex items-center gap-2.5 group text-left">
+                                <img src="${esc(item.photoBase64)}" alt="" class="h-12 w-12 object-cover rounded-lg border border-white/10 group-hover:opacity-80 transition-opacity">
+                                <span class="text-xs text-dobah-300 font-bold flex items-center gap-1 group-hover:underline"><i data-lucide="zoom-in" class="w-3.5 h-3.5"></i> Perbesar foto</span>
+                            </button>
                         ` : ''}
 
                         <div class="flex items-center justify-between pt-2 border-t border-white/10">
@@ -1515,6 +1519,14 @@
                 `;
             }).join('');
 
+            const photoItems = items.map((it, n) => ({ it, n })).filter(x => x.it.photoBase64);
+            document.getElementById('modal-ticket-photos-wrap').classList.toggle('hidden', photoItems.length === 0);
+            document.getElementById('modal-ticket-photos-count').innerText = photoItems.length ? `(${photoItems.length})` : '';
+            document.getElementById('modal-ticket-photos').innerHTML = photoItems.map(({ it, n }) => `
+                <button type="button" onclick="showTicketPhoto('${ticket._fbKey}', '${it.id}')" title="${esc(it.itemName)}" class="group w-[72px] bg-cocoa-900/60 border border-white/10 rounded-xl p-1.5 hover:border-dobah-400/60 transition-colors text-center">
+                    <img src="${esc(it.photoBase64)}" alt="${esc(it.itemName)}" class="w-full h-14 object-cover rounded-lg group-hover:opacity-85 transition-opacity">
+                    <span class="block mt-1 font-mono text-[8px] font-bold uppercase text-dobah-200/70 truncate">${n + 1}. ${esc(it.itemName)}</span>
+                </button>`).join('');
             document.getElementById('modal-ticket-history').innerHTML = (ticket.history || []).slice().reverse().map(h => `<li class="flex gap-2"><span class="mt-1.5 w-2 h-2 rounded-full bg-dobah-400 shrink-0"></span><span><b class="text-cream">${esc(h.text)}</b><br><span class="text-[10px] text-dobah-200/60">${esc(h.by)} &middot; ${new Date(h.at).toLocaleString('id-ID')}</span></span></li>`).join('') || '<li class="text-dobah-200/60">Belum ada riwayat.</li>';
             document.getElementById('modal-ticket-detail').classList.remove('hidden');
             lucide.createIcons();
